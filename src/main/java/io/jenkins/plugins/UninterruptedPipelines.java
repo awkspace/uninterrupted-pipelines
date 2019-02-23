@@ -3,6 +3,7 @@ package io.jenkins.plugins;
 import hudson.Extension;
 import hudson.model.RestartListener;
 import hudson.model.Computer;
+import hudson.model.Executor;
 
 import jenkins.model.Jenkins;
 
@@ -16,8 +17,17 @@ public class UninterruptedPipelines {
         @Override
         public boolean isReadyToRestart() throws IOException, InterruptedException {
             for (Computer c : Jenkins.getInstance().getComputers()) {
-                if (c.isOnline() && c.countBusy() > 0) {
-                    return false;
+                if (c.isOnline()) {
+                    for (Executor e : c.getAllExecutors()) {
+
+                        long idleMillis = System.currentTimeMillis() -
+                            e.getIdleStartMilliseconds();
+
+                        if (!e.isIdle() || idleMillis < 15000) {
+                            return false;
+                        }
+
+                    }
                 }
             }
             return true;
